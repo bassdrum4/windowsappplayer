@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WindowsAppPlayer — run .exe / .msi in your browser</title>
+<!-- Cross-origin isolation shim for static hosts (Pages can't send COOP/COEP).
+     Registered at site scope so BOTH this page and the same-origin wine64
+     iframe are crossOriginIsolated, which the wasm64-mt build requires for
+     SharedArrayBuffer/pthreads. No-op on hosts that already set the headers. -->
+<script>window.coi = { coepCredentialless: () => false };</script>
+<script src="coi-serviceworker.js"></script>
 <style>
   :root {
     --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2d3646;

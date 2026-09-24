@@ -7,6 +7,7 @@
          so crossOriginIsolated becomes true; on a server that already sends the
          headers (node server.mjs) it detects isolation and no-ops. Must run before
          the Emscripten module loads. See coi-serviceworker.js. -->
+    <script>window.coi = { coepCredentialless: () => false };</script>
     <script src="coi-serviceworker.js"></script>
     <title>wine64 in the browser — Boxedwine64</title>
     <meta name="description" content="64-bit Boxedwine: real wine64 running in WebAssembly">
