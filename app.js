@@ -141,8 +141,13 @@ function installXhrInterceptor() {
   const origSetRequestHeader = NativeXHR.prototype.setRequestHeader;
 
   NativeXHR.prototype.open = function (method, url, async, user, pass) {
-    this.__wap_url = String(url);
-    return origOpen.call(this, method, url, async !== false, user, pass);
+    let u = String(url);
+    // The Boxedwine ondemand filesystem hardcodes "/api/fs/" as the prefix for
+    // root-zip chunk fetches. A static host (GitHub Pages) has no such route,
+    // so rewrite it to the same-origin fs/ directory that holds the zips.
+    if (u.startsWith("/api/fs/")) u = FS_BASE + u.slice("/api/fs/".length);
+    this.__wap_url = u;
+    return origOpen.call(this, method, u, async !== false, user, pass);
   };
   NativeXHR.prototype.setRequestHeader = function (k, v) {
     if (this.__wap_url && this.__wap_url.includes(VIRTUAL_APP_ZIP)) {
