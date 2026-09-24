@@ -24,7 +24,9 @@
 // ─── runtime paths (same-origin, downloaded by scripts/fetch-runtime.mjs) ──
 // Site-relative so the app works both at a domain root (local server) and in
 // a sub-path (GitHub Pages serves project sites at /<repo>/).
-const SITE_BASE = location.pathname.replace(/[^/]*$/, "/") || "/";
+const SITE_BASE = location.pathname.endsWith("/")
+  ? location.pathname
+  : location.pathname.replace(/[^/]*$/, "/");
 const RUNTIME_BASE = SITE_BASE + "runtime/";
 const FS_BASE = SITE_BASE + "fs/";
 const ROOT_ZIP = "fullWine1.7.55-v8";
@@ -630,24 +632,27 @@ function waitRuntime64(w, timeoutMs = 8 * 60 * 1000) {
   });
 }
 
-// Write one file into the running wine64 session's home (Z:\home\username\userapp)
-// and register it in Boxedwine's VFS — same mechanics as the launcher's own
-// uploadAndRunExe, minus the auto-launch.
+// Write one file into the running wine64 session and register it in Boxedwine's
+// VFS — same mechanics as the launcher's own uploadAndRunExe, minus auto-launch.
+// Path conventions (from wine64-launcher.js): the Emscripten FS root is /root
+// (HOME_IN_MEMFS = ROOT + "/home/username"), but bw64_register_file and the
+// launch prog use GUEST paths ("/home/username/…" ↔ "Z:\home\username\…").
 function putFile64(w, name, bytes) {
   const FS = w.Module.FS;
-  const dest = "/home/username/userapp/" + name;
-  const parts = dest.split("/").filter(Boolean);
+  const fsDest = "/root/home/username/userapp/" + name;
+  const guestPath = "/home/username/userapp/" + name;
+  const parts = fsDest.split("/").filter(Boolean);
   let p = "";
   for (const part of parts.slice(0, -1)) {
     p += "/" + part;
     try { FS.mkdir(p); } catch (e) { /* EEXIST */ }
   }
-  try { FS.unlink(dest); } catch (e) { /* not there yet */ }
-  FS.writeFile(dest, bytes);
+  try { FS.unlink(fsDest); } catch (e) { /* not there yet */ }
+  FS.writeFile(fsDest, bytes);
   // The prefix dir was scanned (and cached) at boot; raw MEMFS writes are
   // invisible to the guest path resolver until registered.
   try {
-    w.Module.ccall("bw64_register_file", "number", ["string"], ["/home/username/userapp/" + name]);
+    w.Module.ccall("bw64_register_file", "number", ["string"], [guestPath]);
   } catch (e) {
     log(`VFS registration failed for ${name}: ${e}`, "warn");
   }
