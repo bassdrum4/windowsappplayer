@@ -12,130 +12,300 @@
 <script src="coi-serviceworker.js"></script>
 <style>
   :root {
-    --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2d3646;
-    --text: #e6edf3; --muted: #8b949e; --accent: #4f9cf9; --accent2: #3fb950;
-    --warn: #d29922; --error: #f85149;
+    --bg: #07090f;
+    --glow1: rgba(99, 102, 241, .16);
+    --glow2: rgba(14, 165, 233, .12);
+    --surface: rgba(255, 255, 255, .035);
+    --surface-2: rgba(255, 255, 255, .06);
+    --border: rgba(255, 255, 255, .09);
+    --border-bright: rgba(255, 255, 255, .18);
+    --text: #f4f6fb;
+    --muted: #9aa3b5;
+    --accent: #818cf8;
+    --accent-strong: #6366f1;
+    --cyan: #22d3ee;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --error: #f87171;
+    --mono: "Cascadia Code", ui-monospace, "SF Mono", Consolas, monospace;
   }
   * { box-sizing: border-box; }
+  html { color-scheme: dark; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    margin: 0; min-height: 100vh; color: var(--text);
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(900px 500px at 12% -10%, var(--glow1), transparent 60%),
+      radial-gradient(800px 480px at 95% 0%, var(--glow2), transparent 55%),
+      var(--bg);
+    background-attachment: fixed;
   }
-  header {
-    display: flex; align-items: baseline; gap: 12px;
-    padding: 14px 20px; border-bottom: 1px solid var(--border);
-  }
-  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  header .tag { color: var(--muted); font-size: 13px; }
-  header .right { margin-left: auto; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  ::selection { background: rgba(129, 140, 248, .35); }
 
+  /* ── top bar ─────────────────────────────────────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 28px;
+    background: rgba(7, 9, 15, .72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    width: 34px; height: 34px; border-radius: 10px; flex: none;
+    display: grid; place-items: center; font-size: 17px;
+    background: linear-gradient(135deg, var(--accent-strong), var(--cyan));
+    box-shadow: 0 4px 18px rgba(99, 102, 241, .45);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .01em; white-space: nowrap; }
+  header .tag {
+    color: var(--muted); font-size: 12.5px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  header .right { margin-left: auto; flex: none; }
+  header .right a {
+    font-size: 12.5px; padding: 7px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); transition: all .15s;
+  }
+  header .right a:hover { color: var(--text); border-color: var(--border-bright); text-decoration: none; }
+
+  /* ── hero ────────────────────────────────────────────────────────────── */
+  .hero { max-width: 1240px; margin: 0 auto; padding: 54px 28px 10px; text-align: center; }
+  .hero .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; background: var(--surface); margin-bottom: 22px;
+  }
+  .hero .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+  .hero h2 {
+    font-size: clamp(30px, 5vw, 52px); line-height: 1.08; margin: 0 0 16px;
+    font-weight: 700; letter-spacing: -.02em;
+  }
+  .hero h2 .grad {
+    background: linear-gradient(92deg, #a5b4fc 0%, #67e8f9 55%, #a5b4fc 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.sub { color: var(--muted); font-size: 15.5px; max-width: 620px; margin: 0 auto; line-height: 1.6; }
+  .hero p.sub b { color: var(--text); font-weight: 600; }
+
+  /* ── main grid ───────────────────────────────────────────────────────── */
   main {
-    display: grid; grid-template-columns: 380px 1fr; gap: 16px;
-    padding: 16px 20px; max-width: 1500px; margin: 0 auto;
+    max-width: 1240px; margin: 0 auto; padding: 34px 28px 30px;
+    display: grid; grid-template-columns: minmax(340px, 420px) 1fr;
+    gap: 22px; align-items: start;
   }
   @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px;
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    backdrop-filter: blur(6px);
   }
-  .panel h2 {
-    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); margin: 0 0 10px;
+  .card + .card { margin-top: 16px; }
+  .card h3 {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600;
+  }
+  .card h3 .step {
+    width: 19px; height: 19px; border-radius: 6px; flex: none;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent-strong), var(--cyan));
+    color: #0a0f1e; font-size: 11px; font-weight: 700;
   }
 
   /* dropzone */
   #appDropzone {
-    border: 2px dashed var(--border); border-radius: 8px;
-    padding: 26px 14px; text-align: center; cursor: pointer;
-    transition: border-color .15s, background .15s;
+    border: 1.5px dashed rgba(255, 255, 255, .16); border-radius: 14px;
+    padding: 30px 18px; text-align: center; cursor: pointer;
+    background: rgba(255, 255, 255, .02);
+    transition: border-color .18s, background .18s, transform .18s;
   }
-  #appDropzone.hover { border-color: var(--accent); background: rgba(79,156,249,.08); }
-  #appDropzone .big { font-size: 15px; margin-bottom: 6px; }
+  #appDropzone:hover { border-color: rgba(129, 140, 248, .55); background: rgba(129, 140, 248, .05); }
+  #appDropzone.hover {
+    border-color: var(--accent); background: rgba(129, 140, 248, .1);
+    transform: scale(1.012);
+  }
+  #appDropzone .big { font-size: 15px; margin-bottom: 7px; font-weight: 550; }
+  #appDropzone .big b { color: var(--accent); }
   #appDropzone .small { font-size: 12px; color: var(--muted); }
   #appDropzone.disabled { opacity: .45; pointer-events: none; }
+  #appDropzone .dz-icon {
+    font-size: 30px; margin-bottom: 10px; display: block;
+    filter: drop-shadow(0 4px 14px rgba(129, 140, 248, .45));
+  }
 
-  .fileinfo { font-size: 12px; color: var(--muted); margin-top: 10px; word-break: break-all; }
+  .fileinfo { font-size: 12px; color: var(--muted); margin-top: 12px; word-break: break-all; line-height: 1.55; }
+  .fileinfo b { color: var(--text); }
   #entryPickerWrap { margin-top: 10px; }
   #entryPicker {
-    width: 100%; background: var(--panel2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 6px; padding: 6px;
+    width: 100%; background: rgba(0, 0, 0, .3); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px;
+    font-size: 13px; outline: none;
   }
+  #entryPicker:focus { border-color: var(--accent); }
 
+  /* buttons */
   button {
-    background: var(--accent); border: none; color: #06101d; font-weight: 600;
-    padding: 9px 16px; border-radius: 7px; cursor: pointer; font-size: 14px;
+    appearance: none; border: none; cursor: pointer; font-family: inherit;
+    background: linear-gradient(135deg, var(--accent-strong), #8b5cf6);
+    color: #fff; font-weight: 600; font-size: 13.5px;
+    padding: 11px 18px; border-radius: 11px;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, .35);
+    transition: transform .12s, filter .12s, box-shadow .12s;
   }
-  button:hover:not(:disabled) { filter: brightness(1.1); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-  .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button:disabled { opacity: .38; cursor: not-allowed; box-shadow: none; }
+  button.secondary {
+    background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); box-shadow: none;
+  }
+  button.secondary:hover:not(:disabled) { border-color: var(--border-bright); }
+  .row { display: flex; gap: 9px; margin-top: 12px; flex-wrap: wrap; }
+  .row:first-child { margin-top: 0; }
+  .pickers-row { align-items: center; gap: 7px; margin-top: 12px; justify-content: center; }
+  button.linklike {
+    background: none; border: none; box-shadow: none; padding: 2px 3px;
+    color: var(--muted); font-size: 12px; font-weight: 500; border-radius: 6px;
+  }
+  button.linklike:hover:not(:disabled) { color: var(--accent); transform: none; filter: none; }
+  .dotsep { color: var(--muted); opacity: .5; font-size: 12px; }
 
-  #bootStatus { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
-  #bootProgress { width: 100%; margin-top: 6px; height: 8px; }
+  /* engine selector */
+  .archrow { display: flex; gap: 10px; }
+  .archpick {
+    flex: 1; display: flex; gap: 10px; align-items: flex-start;
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 12px; cursor: pointer; background: rgba(255, 255, 255, .02);
+    transition: border-color .15s, background .15s;
+  }
+  .archpick:hover { border-color: var(--border-bright); }
+  .archpick:has(input:checked) {
+    border-color: var(--accent);
+    background: linear-gradient(160deg, rgba(99, 102, 241, .14), rgba(34, 211, 238, .06));
+    box-shadow: 0 0 0 1px var(--accent), 0 6px 22px rgba(99, 102, 241, .22);
+  }
+  .archpick input { accent-color: var(--accent); margin-top: 3px; }
+  .archpick b { font-size: 13.5px; }
+  .archpick small { color: var(--muted); font-size: 11.5px; line-height: 1.4; display: block; margin-top: 3px; }
+
+  #bootStatus { font-size: 13px; color: var(--muted); margin-top: 14px; min-height: 19px; line-height: 1.5; }
+  #bootProgress {
+    width: 100%; margin-top: 8px; height: 6px;
+    appearance: none; -webkit-appearance: none; border: none; border-radius: 99px; overflow: hidden;
+    background: rgba(255, 255, 255, .08);
+  }
+  #bootProgress::-webkit-progress-bar { background: rgba(255, 255, 255, .08); border-radius: 99px; }
+  #bootProgress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent-strong), var(--cyan)); border-radius: 99px; }
+  #bootProgress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent-strong), var(--cyan)); border-radius: 99px; }
   #bootProgress[hidden] { display: none; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 10px; line-height: 1.55; }
 
   /* log */
   #logOutput {
-    background: #0a0e14; border: 1px solid var(--border); border-radius: 6px;
-    font: 11px/1.5 ui-monospace, Consolas, monospace; color: #9aa4b2;
-    height: 200px; overflow-y: auto; padding: 8px; white-space: pre-wrap; word-break: break-all;
+    background: rgba(0, 0, 0, .38); border: 1px solid var(--border); border-radius: 11px;
+    font: 11px/1.6 var(--mono); color: #8f9ab0;
+    height: 190px; overflow-y: auto; padding: 11px 13px;
+    white-space: pre-wrap; word-break: break-all;
   }
+  #logOutput::-webkit-scrollbar, #appFrame::-webkit-scrollbar { width: 9px; }
+  #logOutput::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .14); border-radius: 99px; }
 
   /* screen */
-  #screen-container { display: flex; align-items: center; justify-content: center; min-height: 480px; }
-  #screen-container .placeholder { color: var(--muted); font-size: 14px; text-align: center; }
+  #screen-container {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 560px; border-radius: 16px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .028), rgba(255, 255, 255, 0) 140px),
+      repeating-conic-gradient(rgba(255, 255, 255, .016) 0% 25%, transparent 0% 50%) 0 0 / 26px 26px,
+      rgba(0, 0, 0, .3);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  #screen-container .placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    color: var(--muted); font-size: 14px; text-align: center; padding: 20px;
+    pointer-events: none;
+  }
+  #screen-container .placeholder .ph-icon {
+    width: 74px; height: 74px; border-radius: 20px; display: grid; place-items: center;
+    font-size: 34px; margin-bottom: 4px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, .25), rgba(34, 211, 238, .12));
+    border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(99, 102, 241, .25);
+  }
+  #screen-container .placeholder .ph-hint { font-size: 12px; opacity: .75; }
   #screen-container.has-content .placeholder { display: none; }
   #canvas {
-    background: #000; border-radius: 6px; max-width: 100%;
-    box-shadow: 0 0 0 1px var(--border), 0 10px 40px rgba(0,0,0,.5);
+    background: #000; border-radius: 8px; max-width: 100%; z-index: 1;
+    box-shadow: 0 0 0 1px var(--border), 0 24px 70px rgba(0, 0, 0, .6);
     outline: none;
   }
-  #frame-wrap { display: none; width: 100%; }
+  #frame-wrap { display: none; width: 100%; height: 640px; z-index: 1; }
   #frame-wrap.active { display: block; }
   #appFrame {
-    width: 100%; height: 620px; border: 1px solid var(--border);
-    border-radius: 6px; background: #10141a;
+    width: 100%; height: 100%; border: none; border-radius: 12px;
+    background: #10141a;
   }
-  .archrow { display: flex; gap: 8px; }
-  .archpick {
-    flex: 1; display: flex; gap: 8px; align-items: center;
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px; cursor: pointer; background: var(--panel2);
-  }
-  .archpick input { accent-color: var(--accent); }
-  .archpick small { color: var(--muted); }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .screen-note { margin-top: 10px; }
 
   footer {
-    padding: 10px 20px 24px; color: var(--muted); font-size: 12px;
-    max-width: 1500px; margin: 0 auto;
+    max-width: 1240px; margin: 0 auto; padding: 8px 28px 34px;
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+  }
+  footer .sep { opacity: .4; margin: 0 7px; }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; }
+    header .tag { display: none; }
+    .hero { padding: 38px 16px 6px; }
+    main { padding: 24px 16px; }
+    #screen-container { min-height: 420px; }
+    #frame-wrap { height: 520px; }
   }
 </style>
 </head>
 <body>
 <header>
-  <h1>🪟 WindowsAppPlayer</h1>
-  <span class="tag">runs 32-bit Windows apps in your browser — Wine + WebAssembly, no VM, nothing uploaded</span>
+  <div class="logo">🪟</div>
+  <h1>WindowsAppPlayer</h1>
+  <span class="tag">Windows apps in your browser — Wine + WebAssembly, no VM, nothing uploaded</span>
   <span class="right"><a href="https://github.com/danoon2/Boxedwine" target="_blank" rel="noopener">Boxedwine ↗</a></span>
 </header>
 
+<div class="hero">
+  <div class="pill"><span class="dot"></span> Runs locally in your browser tab — zero uploads</div>
+  <h2>Run Windows apps <span class="grad">right in your browser</span></h2>
+  <p class="sub">
+    Drop a <b>.exe</b>, <b>.msi</b>, or <b>.zip</b> and it launches on an emulated PC —
+    real Wine, real WebAssembly, <b>no VM and nothing leaves your machine</b>.
+  </p>
+</div>
+
 <main>
   <section>
-    <div class="panel">
-      <h2>1 · Load an app</h2>
+    <div class="card">
+      <h3><span class="step">1</span> Load an app</h3>
       <div id="appDropzone" tabindex="0" role="button" aria-label="Choose an executable">
-        <div class="big">Drop a <b>.exe</b>, <b>.msi</b>, or <b>.zip</b> here</div>
+        <span class="dz-icon">📦</span>
+        <div class="big">Drop a <b>.exe</b>, <b>.msi</b>, or <b>.zip</b></div>
         <div class="small">or click to browse — files stay on this machine</div>
       </div>
       <input type="file" id="exeInput" accept=".exe,.msi" hidden>
       <input type="file" id="folderInput" webkitdirectory hidden>
       <input type="file" id="zipInput" accept=".zip" hidden>
-      <div class="row">
-        <button id="pickBtn" class="secondary">.exe / .msi</button>
-        <button id="pickFolderBtn" class="secondary">Folder</button>
-        <button id="pickZipBtn" class="secondary">.zip</button>
+      <div class="row pickers-row">
+        <button id="pickBtn" class="linklike">.exe / .msi</button>
+        <span class="dotsep">·</span>
+        <button id="pickFolderBtn" class="linklike">Folder</button>
+        <span class="dotsep">·</span>
+        <button id="pickZipBtn" class="linklike">.zip</button>
       </div>
       <div id="entryPickerWrap" hidden>
         <label class="fileinfo" for="entryPicker">Multiple programs found — pick one:</label>
@@ -144,62 +314,65 @@
       <div class="fileinfo" id="fileInfo"></div>
     </div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>2 · Engine</h2>
+    <div class="card">
+      <h3><span class="step">2</span> Engine</h3>
       <div class="archrow">
         <label class="archpick">
           <input type="radio" name="arch" id="arch32" checked>
-          <span><b>32-bit</b><br><small>Wine 1.7.55 · fast fetch</small></span>
+          <span><b>32-bit</b><small>Wine 1.7.55 · classic apps · fast fetch</small></span>
         </label>
         <label class="archpick">
           <input type="radio" name="arch" id="arch64">
-          <span><b>64-bit</b><br><small>wine64 · modern apps</small></span>
+          <span><b>64-bit</b><small>wine64 · modern apps · ~205 MB first boot</small></span>
         </label>
       </div>
-      <div class="hint" style="margin-top:6px">Not sure? Just Run — the engine is picked automatically from the EXE header.</div>
+      <div class="hint">Not sure? Just Run — the engine is picked automatically from the EXE header.</div>
     </div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>3 · Run</h2>
-      <div class="row" style="margin-top:0">
-        <button id="runBtn" disabled>▶ Run</button>
+    <div class="card">
+      <h3><span class="step">3</span> Run</h3>
+      <div class="row">
+        <button id="runBtn" disabled>▶&ensp;Run</button>
         <button id="demoBtn" class="secondary">Try demo (7-Zip)</button>
       </div>
       <div class="row">
-        <button id="saveStateBtn" class="secondary" disabled>⬇ Download changed files</button>
-        <button id="stopBtn" class="secondary" disabled>■ Stop / reset</button>
+        <button id="saveStateBtn" class="secondary" disabled>⬇&ensp;Download changed files</button>
+        <button id="stopBtn" class="secondary" disabled>■&ensp;Stop / reset</button>
       </div>
-      <div id="bootStatus">Pick an app, or try the demo. First 32-bit run downloads the Wine system (~50 MB, once).</div>
+      <div id="bootStatus">Pick an app, or try the demo. First 32-bit run downloads the Wine system (~50&nbsp;MB, once).</div>
       <progress id="bootProgress" hidden></progress>
-      <div class="hint">Best with classic Win32 apps from ~1995–2010 on the 32-bit engine; wine64 handles newer 64-bit apps (still experimental). Emulated speed, no GPU acceleration.</div>
+      <div class="hint">Classic Win32 apps (~1995–2010) run best on the 32-bit engine; wine64 handles newer 64-bit apps (experimental). Emulated speed, no GPU acceleration.</div>
     </div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>Console log</h2>
+    <div class="card">
+      <h3>Console</h3>
       <div id="logOutput"></div>
     </div>
   </section>
 
   <section>
-    <div class="panel">
-      <h2>App screen</h2>
+    <div class="card" style="padding:12px">
       <div id="screen-container">
         <div class="placeholder">
-          <div style="font-size:42px">🪟</div>
-          <div>The app's window will appear here.</div>
+          <div class="ph-icon">🪟</div>
+          <div>The app's window will appear here</div>
+          <div class="ph-hint">Click the screen to give it keyboard focus</div>
         </div>
         <canvas id="canvas"></canvas>
         <div id="frame-wrap"><iframe id="appFrame" title="wine64 session" style="display:none"></iframe></div>
       </div>
-      <div class="hint">Click the screen to give it keyboard focus.</div>
     </div>
   </section>
 </main>
 
 <footer>
-  Powered by <a href="https://www.boxedwine.org/" target="_blank" rel="noopener">Boxedwine</a>
-  (GPL-2.0) running <a href="https://www.winehq.org/" target="_blank" rel="noopener">Wine</a> (LGPL-2.1).
-  See <a href="NOTICE.md">NOTICE.md</a> for provenance. Your files never leave this browser tab.
+  Powered by <a href="https://www.boxedwine.org/" target="_blank" rel="noopener">Boxedwine</a> (GPL-2.0)
+  <span class="sep">·</span>
+  <a href="https://www.winehq.org/" target="_blank" rel="noopener">Wine</a> (LGPL-2.1)
+  <span class="sep">·</span>
+  <a href="NOTICE.md">NOTICE.md</a>
+  <span class="sep">·</span>
+  Your files never leave this browser tab.
 </footer>
 
 <script src="app.js"></script>

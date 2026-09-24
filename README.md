@@ -53,11 +53,19 @@ games, GUI tools that don't need 3D acceleration or .NET. Portable/zip'd apps
 are the happy path. The demo 7-Zip is a good benchmark.
 
 **Doesn't / limits:**
-- **64-bit and modern apps**: the emulator is 32-bit x86 only, Wine is 1.7.55
-  (2014-era). UWP, .NET-heavy, and modern installers generally fail.
+- **64-bit apps**: run them with the **64-bit engine** (wine64 on Boxedwine64,
+  selected in Step 2 or auto-picked from the EXE header). It's experimental:
+  first boot downloads ~205 MB of rootfs, GUI apps need WebGL, and complex
+  programs may fail — but a real wine64 session runs, and apps can be swapped
+  into the live session without a reload.
+- **32-bit classics**: Wine is 1.7.55 (2014-era). UWP, .NET-heavy, and modern
+  installers generally fail on this engine.
 - **Speed**: it's an interpreter, not a JIT — expect roughly 1990s-PC
   performance. Great for utilities and retro software, not for Chrome-era apps.
 - **3D acceleration**: no hardware GL; DirectDraw-era 2D is fine.
+- **Hosting note**: the 64-bit engine needs cross-origin isolation (for
+  SharedArrayBuffer). The bundled coi-serviceworker provides it on any static
+  host, including GitHub Pages.
 - **.msi files**: handled by generating a small batch that calls Wine's
   `msiexec`. Wine 1.7.55's MSI support is dated — many installers (especially
   anything requiring .NET, VC++ runtimes, or admin elevation) will fail.
