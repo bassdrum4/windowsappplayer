@@ -22,8 +22,11 @@
 "use strict";
 
 // ─── runtime paths (same-origin, downloaded by scripts/fetch-runtime.mjs) ──
-const RUNTIME_BASE = "/runtime/";
-const FS_BASE = "/fs/";
+// Site-relative so the app works both at a domain root (local server) and in
+// a sub-path (GitHub Pages serves project sites at /<repo>/).
+const SITE_BASE = location.pathname.replace(/[^/]*$/, "/") || "/";
+const RUNTIME_BASE = SITE_BASE + "runtime/";
+const FS_BASE = SITE_BASE + "fs/";
 const ROOT_ZIP = "fullWine1.7.55-v8";
 const OVERLAY_ZIP = "wine1.7.55-v8-min-online";
 const VIRTUAL_APP_ZIP = "userapp.zip";
@@ -476,7 +479,7 @@ async function runDemo() {
     els.demoBtn.disabled = true;
     setStatus("Fetching demo app…");
     await loadBoxedwineDeps(); // JSZip must exist before we stage the zip
-    const r = await fetch("/demo/7-zip.zip");
+    const r = await fetch(SITE_BASE + "demo/7-zip.zip");
     if (!r.ok) throw new Error(`HTTP ${r.status} fetching demo`);
     const buf = await r.arrayBuffer();
     clearStaged(); // don't mix the demo with whatever the user dropped earlier
@@ -578,7 +581,7 @@ function ensureFrame64() {
   return new Promise((resolve, reject) => {
     if (state.frameReady) return resolve();
     if (!els.appFrame.getAttribute("src")) {
-      els.appFrame.src = `64/?chunked=1&p=${encodeURIComponent(WARMUP_PROG)}&gltrace=0`;
+      els.appFrame.src = `${SITE_BASE}64/?chunked=1&p=${encodeURIComponent(WARMUP_PROG)}&gltrace=0`;
     }
     let waited = 0;
     const iv = setInterval(() => {
@@ -804,7 +807,7 @@ function stopApp() {
   if (state.arch === "64") {
     // The 64-bit engine has no in-page teardown that survives (non-MODULARIZE
     // build); a frame reload is the honest stop.
-    els.appFrame.src = "64/?chunked=1";
+    els.appFrame.src = `${SITE_BASE}64/?chunked=1`;
     state.frameReady = false;
     state.booted = false;
     log("wine64 session reset (frame reloaded).");
