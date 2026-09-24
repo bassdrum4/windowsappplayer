@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WindowsAppPlayer — run .exe / .msi in your browser</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2d3646;
+    --text: #e6edf3; --muted: #8b949e; --accent: #4f9cf9; --accent2: #3fb950;
+    --warn: #d29922; --error: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .tag { color: var(--muted); font-size: 13px; }
+  header .right { margin-left: auto; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  main {
+    display: grid; grid-template-columns: 380px 1fr; gap: 16px;
+    padding: 16px 20px; max-width: 1500px; margin: 0 auto;
+  }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 0 0 10px;
+  }
+
+  /* dropzone */
+  #appDropzone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 26px 14px; text-align: center; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #appDropzone.hover { border-color: var(--accent); background: rgba(79,156,249,.08); }
+  #appDropzone .big { font-size: 15px; margin-bottom: 6px; }
+  #appDropzone .small { font-size: 12px; color: var(--muted); }
+  #appDropzone.disabled { opacity: .45; pointer-events: none; }
+
+  .fileinfo { font-size: 12px; color: var(--muted); margin-top: 10px; word-break: break-all; }
+  #entryPickerWrap { margin-top: 10px; }
+  #entryPicker {
+    width: 100%; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px;
+  }
+
+  button {
+    background: var(--accent); border: none; color: #06101d; font-weight: 600;
+    padding: 9px 16px; border-radius: 7px; cursor: pointer; font-size: 14px;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  #bootStatus { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  #bootProgress { width: 100%; margin-top: 6px; height: 8px; }
+  #bootProgress[hidden] { display: none; }
+
+  /* log */
+  #logOutput {
+    background: #0a0e14; border: 1px solid var(--border); border-radius: 6px;
+    font: 11px/1.5 ui-monospace, Consolas, monospace; color: #9aa4b2;
+    height: 200px; overflow-y: auto; padding: 8px; white-space: pre-wrap; word-break: break-all;
+  }
+
+  /* screen */
+  #screen-container { display: flex; align-items: center; justify-content: center; min-height: 480px; }
+  #screen-container .placeholder { color: var(--muted); font-size: 14px; text-align: center; }
+  #screen-container.has-content .placeholder { display: none; }
+  #canvas {
+    background: #000; border-radius: 6px; max-width: 100%;
+    box-shadow: 0 0 0 1px var(--border), 0 10px 40px rgba(0,0,0,.5);
+    outline: none;
+  }
+  #frame-wrap { display: none; width: 100%; }
+  #frame-wrap.active { display: block; }
+  #appFrame {
+    width: 100%; height: 620px; border: 1px solid var(--border);
+    border-radius: 6px; background: #10141a;
+  }
+  .archrow { display: flex; gap: 8px; }
+  .archpick {
+    flex: 1; display: flex; gap: 8px; align-items: center;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; cursor: pointer; background: var(--panel2);
+  }
+  .archpick input { accent-color: var(--accent); }
+  .archpick small { color: var(--muted); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  footer {
+    padding: 10px 20px 24px; color: var(--muted); font-size: 12px;
+    max-width: 1500px; margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🪟 WindowsAppPlayer</h1>
+  <span class="tag">runs 32-bit Windows apps in your browser — Wine + WebAssembly, no VM, nothing uploaded</span>
+  <span class="right"><a href="https://github.com/danoon2/Boxedwine" target="_blank" rel="noopener">Boxedwine ↗</a></span>
+</header>
+
+<main>
+  <section>
+    <div class="panel">
+      <h2>1 · Load an app</h2>
+      <div id="appDropzone" tabindex="0" role="button" aria-label="Choose an executable">
+        <div class="big">Drop a <b>.exe</b>, <b>.msi</b>, or <b>.zip</b> here</div>
+        <div class="small">or click to browse — files stay on this machine</div>
+      </div>
+      <input type="file" id="exeInput" accept=".exe,.msi" hidden>
+      <input type="file" id="folderInput" webkitdirectory hidden>
+      <input type="file" id="zipInput" accept=".zip" hidden>
+      <div class="row">
+        <button id="pickBtn" class="secondary">.exe / .msi</button>
+        <button id="pickFolderBtn" class="secondary">Folder</button>
+        <button id="pickZipBtn" class="secondary">.zip</button>
+      </div>
+      <div id="entryPickerWrap" hidden>
+        <label class="fileinfo" for="entryPicker">Multiple programs found — pick one:</label>
+        <select id="entryPicker"></select>
+      </div>
+      <div class="fileinfo" id="fileInfo"></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>2 · Engine</h2>
+      <div class="archrow">
+        <label class="archpick">
+          <input type="radio" name="arch" id="arch32" checked>
+          <span><b>32-bit</b><br><small>Wine 1.7.55 · fast fetch</small></span>
+        </label>
+        <label class="archpick">
+          <input type="radio" name="arch" id="arch64">
+          <span><b>64-bit</b><br><small>wine64 · modern apps</small></span>
+        </label>
+      </div>
+      <div class="hint" style="margin-top:6px">Not sure? Just Run — the engine is picked automatically from the EXE header.</div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>3 · Run</h2>
+      <div class="row" style="margin-top:0">
+        <button id="runBtn" disabled>▶ Run</button>
+        <button id="demoBtn" class="secondary">Try demo (7-Zip)</button>
+      </div>
+      <div class="row">
+        <button id="saveStateBtn" class="secondary" disabled>⬇ Download changed files</button>
+        <button id="stopBtn" class="secondary" disabled>■ Stop / reset</button>
+      </div>
+      <div id="bootStatus">Pick an app, or try the demo. First 32-bit run downloads the Wine system (~50 MB, once).</div>
+      <progress id="bootProgress" hidden></progress>
+      <div class="hint">Best with classic Win32 apps from ~1995–2010 on the 32-bit engine; wine64 handles newer 64-bit apps (still experimental). Emulated speed, no GPU acceleration.</div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Console log</h2>
+      <div id="logOutput"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2>App screen</h2>
+      <div id="screen-container">
+        <div class="placeholder">
+          <div style="font-size:42px">🪟</div>
+          <div>The app's window will appear here.</div>
+        </div>
+        <canvas id="canvas"></canvas>
+        <div id="frame-wrap"><iframe id="appFrame" title="wine64 session" style="display:none"></iframe></div>
+      </div>
+      <div class="hint">Click the screen to give it keyboard focus.</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Powered by <a href="https://www.boxedwine.org/" target="_blank" rel="noopener">Boxedwine</a>
+  (GPL-2.0) running <a href="https://www.winehq.org/" target="_blank" rel="noopener">Wine</a> (LGPL-2.1).
+  See <a href="/NOTICE.md">NOTICE.md</a> for provenance. Your files never leave this browser tab.
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

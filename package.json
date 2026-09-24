@@ -1,0 +1,11 @@
+{
+  "name": "windows-app-player",
+  "version": "1.0.0",
+  "description": "Run Windows .exe / .msi apps in your browser — WebAssembly x86 emulator + Wine, no VM, free.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/fetch-runtime.mjs",
+    "start": "node server.mjs"
+  }
+}
